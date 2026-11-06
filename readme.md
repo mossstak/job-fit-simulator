@@ -6,16 +6,21 @@ This project was engineered to solve the legacy limitations of rigid keyword-cou
 
 ## 🛠️ Tech Stack & Architecture
 
-- **User Interface:** Streamlit (A reactive Python web dashboard utilizing in-memory binary stream state management to process file buffers natively in RAM without disk footprint).
+- **User Interface:** Streamlit (Reactive Python web dashboard utilizing in-memory binary stream state management to process file buffers natively in RAM without disk footprint).
 - **AI Orchestration Framework:** Built with an abstract client boundary allowing seamless hot-swapping between cloud platforms (**Google Gen AI SDK / Gemini 3.8 Flash**) and fully air-gapped, on-premise local edge computing (**OpenAI SDK / Ollama / Llama 3.1 8B**).
-- **Data Ingestion:** `pypdf` for low-overhead extraction of unstructured text streams from binary PDF resumes.
-- **Type Safety & Data Integrity:** `Pydantic` schema enforcement (`BaseModel`) to force a probabilistic language model to guarantee structured, deterministic JSON payloads, ensuring application reliability.
+- **Deterministic Inference:** Locked down with zero-temperature sampling (`temperature=0.0`) to enforce strict classification consistency and prevent evaluation variance across runs.
+- **Data Ingestion:** `pypdf` and `python-docx` for low-overhead, in-memory extraction of unstructured text streams from binary PDF and Word (`.docx`) documents.
+- **Relational Persistence:** Built-in `sqlite3` storage engine (`jobs_history.db`) for tracking historical match logs, preserving full structured evaluation payloads, timestamps, and application metadata.
+- **Type Safety & Data Integrity:** `Pydantic` schema enforcement (`BaseModel`) to force probabilistic language models to return strictly validated, deterministic JSON structures.
 
 ## 💼 Core Features
 
+- **Multi-Format Resume Ingestion:** Supports both `.pdf` and `.docx` files, parsing document streams directly in memory via `io.BytesIO`.
 - **Semantic Talent Matching:** Evaluates transferable capabilities rather than strict keyword strings (e.g., mapping asynchronous backend structures like C#/.NET to Python workflows based on conceptual engineering foundations).
 - **Chronological Experience Evaluation:** Maps candidate career timelines directly against requested seniority levels to gauge architectural maturity.
-- **Experience Gap Mitigation:** A custom portfolio-advice layer designed to calculate how academic project depth and adjacent stack familiarity can strategically bypass the junior "2-3 years of experience" corporate paradox.
+- **Experience Gap Mitigation:** A custom portfolio-advice layer designed to calculate how academic project depth and adjacent stack familiarity can strategically bypass the junior "2–3 years of experience" corporate paradox.
+- **Application URL Tracking:** Captures original job posting URLs alongside evaluations, providing one-click access (`st.link_button`) directly to live job applications.
+- **Audit Trail & State Hydration:** An interactive historical match inspector that queries SQLite and rehydrates previous evaluations directly back into the reactive UI state without re-running LLM inference.
 - **Air-Gapped Privacy Implementation:** Can be executed 100% locally on user hardware to fully secure candidate Personally Identifiable Information (PII), aligning with enterprise data protection standards (GDPR).
 
 ## 🚀 Getting Started (Local Edge-Inference Mode)
