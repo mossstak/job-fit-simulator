@@ -1,0 +1,22 @@
+# Secure Environment Credentials
+.env
+
+# Python Compiled Caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Workspace Configuration Hidden Files
+.streamlit/
+.idea/
+.vscode/
+
+# System Environment Folders (If you created a local venv)
+venv/
+.venv/
+env/
+
+# Operating System System Files
+Thumbs.db
+.DS_Store
