@@ -1,4 +1,4 @@
-# Job Match Analyzer
+# Job Fit Simulator
 
 An enterprise-grade, privacy-first software utility that leverages semantic natural language processing (NLP) to map unstructured resume documents against corporate job listings, outputting type-safe career alignment metrics.
 
