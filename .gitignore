@@ -1,6 +1,5 @@
 # Secure Environment Credentials
 .env
-matcher.py
 # Python Compiled Caches
 __pycache__/
 *.pyc
