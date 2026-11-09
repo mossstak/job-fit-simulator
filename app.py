@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 from datetime import datetime
 from io import BytesIO
@@ -7,6 +8,10 @@ from typing import Literal, Optional
 import docx
 import pandas as pd
 import streamlit as st
+from dotenv import load_dotenv
+from google import genai
+from google.genai import errors as genai_errors
+from google.genai import types
 from openai import InternalServerError, OpenAI
 from pydantic import BaseModel
 from pypdf import PdfReader
@@ -138,45 +143,86 @@ def extract_text_from_docx(file_bytes):
     return "\n".join(full_text)
 
 
-def analyze(resume_text: str, job_description: str) -> JobMatchResult:
-    client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+# Engine Configurations
+ENGINE_GEMINI = "Gemini (Cloud / High Precision)"
+ENGINE_OLLAMA = "Ollama Local (Qwen 2.5 / Offline)"
 
-    system_message = (
-        "You are an expert technical recruiter. Compare the CANDIDATE RESUME against the "
-        "JOB DESCRIPTION and evaluate the candidate's suitability for the role."
-    )
+GEMINI_PRIMARY_MODEL = "gemini-3.8-flash"
+GEMINI_FALLBACK_MODEL = "gemini-3.5-flash-lite"
 
-    prompt_text = f"""In the experience_alignment section, evaluate how the candidate's professional work experience,
-past job roles, and career timeline prepare them for this target position.
+# Set to "qwen2.5:14b" (or "qwen2.5" / "qwen2.5:7b" depending on which model you pulled in Ollama)
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:14b")
 
-If the job description asks for a specific number of years of experience (e.g., 2 years) but is
-listed as junior/entry-level, analyze how the candidate's technical project depth or adjacent
-stack knowledge can mitigate this gap. Provide a 2-sentence tactical recommendation in the
-experience_gap_mitigation field.
+SYSTEM_MESSAGE = """You are a precise, objective Technical Recruiter and Hiring Manager.
+Evaluate the candidate's CV against the job description with balanced realism.
+
+EVALUATION GUIDELINES:
+- matching_skills: List specific tools, programming languages, and core technical skills that exist on both the CV and the job description (e.g., C#, Unity, Git, SQL). Do not omit a language simply because it was used in an academic or personal setting.
+- missing_skills: List ONLY tools, technologies, and technical domain practices explicitly required by the job description that do NOT appear on the candidate's CV (e.g., mobile memory profiling, live-service deployment pipelines).
+- suitability:
+  * 'Perfect Match': 90%+ match across technical stack AND required seniority level.
+  * 'Good Match': Core technical skills match; candidate meets the target seniority.
+  * 'Stretch Role': Candidate has core fundamentals but is stepping up one level (e.g., Junior to Mid, or Mid to Senior).
+  * 'Unsuitable': Severe structural mismatch (e.g., Junior applying for Team Lead/Principal), or missing the primary programming language/domain completely. Non-technical leadership (e.g., retail/hospitality shift lead) cannot substitute for software engineering leadership."""
+
+
+def build_user_prompt(resume_text: str, job_description: str) -> str:
+    return f"""Evaluate candidate alignment:
 
 CANDIDATE RESUME:
 {resume_text}
 
 JOB DESCRIPTION:
-{job_description}
-"""
+{job_description}"""
+
+
+def analyze_with_gemini(resume_text: str, job_description: str) -> JobMatchResult:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not found. Set it in a .env file as GEMINI_API_KEY=...")
+
+    client = genai.Client(api_key=api_key)
+    config = types.GenerateContentConfig(
+        system_instruction=SYSTEM_MESSAGE,
+        response_mime_type="application/json",
+        response_schema=JobMatchResult,
+    )
+    prompt_text = build_user_prompt(resume_text, job_description)
+
+    try:
+        response = client.models.generate_content(
+            model=GEMINI_PRIMARY_MODEL, contents=prompt_text, config=config
+        )
+    except genai_errors.APIError as e:
+        print(f"WARNING: {GEMINI_PRIMARY_MODEL} request failed ({e}). Falling back to {GEMINI_FALLBACK_MODEL}...")
+        response = client.models.generate_content(
+            model=GEMINI_FALLBACK_MODEL, contents=prompt_text, config=config
+        )
+
+    if response.parsed is not None:
+        return response.parsed
+    return JobMatchResult.model_validate_json(response.text)
+
+
+def analyze_with_ollama(resume_text: str, job_description: str) -> JobMatchResult:
+    client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
 
     messages = [
-        {"role": "system", "content": system_message},
-        {"role": "user", "content": prompt_text},
+        {"role": "system", "content": SYSTEM_MESSAGE},
+        {"role": "user", "content": build_user_prompt(resume_text, job_description)},
     ]
 
     try:
         response = client.beta.chat.completions.parse(
-            model="llama3.1",
+            model=OLLAMA_MODEL,
             messages=messages,
             response_format=JobMatchResult,
             temperature=0.0,
         )
     except InternalServerError as e:
-        print(f"WARNING: llama3.1 request failed ({e}). Retrying once...")
+        print(f"WARNING: {OLLAMA_MODEL} request failed ({e}). Retrying once...")
         response = client.beta.chat.completions.parse(
-            model="llama3.1",
+            model=OLLAMA_MODEL,
             messages=messages,
             response_format=JobMatchResult,
             temperature=0.0,
@@ -185,11 +231,24 @@ JOB DESCRIPTION:
     return response.choices[0].message.parsed
 
 
+def analyze(resume_text: str, job_description: str, engine: str) -> JobMatchResult:
+    if engine == ENGINE_GEMINI:
+        return analyze_with_gemini(resume_text, job_description)
+    return analyze_with_ollama(resume_text, job_description)
+
+
+load_dotenv()
 init_db()
 
 st.set_page_config(page_title="Job Match Analyzer", page_icon="🎯", layout="centered")
 st.title("🎯 Job Match Analyzer")
 st.caption("Upload a resume and paste a job description to get an instant AI-powered suitability analysis.")
+
+engine_choice = st.sidebar.radio(
+    "Select AI Engine",
+    [ENGINE_GEMINI, ENGINE_OLLAMA],
+    index=0,
+)
 
 resume_file = st.file_uploader("Upload your resume", type=["pdf", "docx"])
 job_description = st.text_area(
@@ -207,12 +266,13 @@ if analyze_clicked:
     elif not job_description.strip():
         st.warning("Please paste a job description first.")
     else:
-        with st.spinner("Analyzing resume with Ollama..."):
+        engine_label = "Gemini" if engine_choice == ENGINE_GEMINI else "Ollama (Qwen 2.5)"
+        with st.spinner(f"Analyzing resume with {engine_label}..."):
             if resume_file.name.lower().endswith(".pdf"):
                 resume_text = extract_pdf_text(resume_file.getvalue())
             elif resume_file.name.lower().endswith(".docx"):
                 resume_text = extract_text_from_docx(resume_file.getvalue())
-            result = analyze(resume_text, job_description)
+            result = analyze(resume_text, job_description, engine_choice)
             st.session_state["result"] = result
             st.session_state["job_url"] = job_url
             log_match(
@@ -275,11 +335,12 @@ with st.expander("📜 Past Matches History"):
         display_df = history_df.drop(
             columns=["matching_skills", "missing_skills", "experience_alignment", "experience_gap_mitigation"]
         )
-        st.dataframe(
-            display_df,
-            use_container_width=True,
-            column_config={"job_url": st.column_config.LinkColumn("Job Link", display_text="🔗 Open")},
-        )
+        # Convert to clean markdown table without triggering pyarrow
+        table_rows = ["| Date | Job Title | Suitability | Link |", "| :--- | :--- | :--- | :--- |"]
+        for row in display_df.itertuples():
+            link_md = f"[🔗 Open]({row.job_url})" if getattr(row, "job_url", None) else "-"
+            table_rows.append(f"| {row.timestamp} | {row.job_title} | {row.suitability} | {link_md} |")
+        st.markdown("\n".join(table_rows))
 
         options = {
             f"{row.timestamp} — {row.job_title}": row.id for row in history_df.itertuples()
