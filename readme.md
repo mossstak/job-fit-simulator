@@ -1,10 +1,10 @@
-# Job Match Analyzer 🎯
+# Job Match Analyzer
 
 An enterprise-grade, privacy-first software utility that leverages semantic natural language processing (NLP) to map unstructured resume documents against corporate job listings, outputting type-safe career alignment metrics.
 
 This project was engineered to solve the legacy limitations of rigid keyword-counting applicant tracking systems by implementing full semantic comprehension of technical skills and transferable experience.
 
-## 🛠️ Tech Stack & Architecture
+## Tech Stack & Architecture
 
 - **User Interface:** Streamlit (Reactive Python web dashboard utilizing in-memory binary stream state management to process file buffers natively in RAM without disk footprint).
 - **Dual-Engine AI Selector:** A sidebar toggle switches each analysis between two engines:
@@ -16,7 +16,7 @@ This project was engineered to solve the legacy limitations of rigid keyword-cou
 - **Relational Persistence:** Built-in `sqlite3` storage engine (`jobs_history.db`, created automatically on first run) for tracking historical match logs, preserving full structured evaluation payloads, timestamps, and application metadata.
 - **Type Safety & Data Integrity:** `Pydantic` schema enforcement (`BaseModel`) to force probabilistic language models to return strictly validated JSON structures.
 
-## 💼 Core Features
+## Core Features
 
 - **Multi-Format Resume Ingestion:** Supports both `.pdf` and `.docx` files, parsing document streams directly in memory via `io.BytesIO`.
 - **Semantic Talent Matching:** Evaluates transferable capabilities rather than strict keyword strings (e.g., mapping asynchronous backend structures like C#/.NET to Python workflows based on conceptual engineering foundations).
@@ -24,10 +24,10 @@ This project was engineered to solve the legacy limitations of rigid keyword-cou
 - **Chronological Experience Evaluation:** Maps candidate career timelines directly against requested seniority levels to gauge architectural maturity.
 - **Experience Gap Mitigation:** A portfolio-advice section suggesting how project depth and adjacent stack familiarity can offset the junior "2–3 years of experience" paradox.
 - **Application URL Tracking:** Captures original job posting URLs alongside evaluations, providing one-click access (`st.link_button`) directly to live job applications.
-- **Audit Trail & State Hydration:** A "📜 Past Matches History" panel lists every previous evaluation (newest first) and can reload any of them back into the UI without re-running LLM inference. The table is rendered as native Markdown, so it does not depend on PyArrow (useful on machines where Windows Application Control blocks `pyarrow.lib`).
+- **Audit Trail & State Hydration:** A "Past Matches History" panel lists every previous evaluation (newest first) and can reload any of them back into the UI without re-running LLM inference. The table is rendered as native Markdown, so it does not depend on PyArrow (useful on machines where Windows Application Control blocks `pyarrow.lib`).
 - **Air-Gapped Privacy Implementation:** With the Ollama engine selected, everything runs 100% locally on user hardware to fully secure candidate Personally Identifiable Information (PII), aligning with enterprise data protection standards (GDPR).
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Clone & Install Dependencies
 Ensure you have Python installed, then set up the local project environment:
@@ -61,11 +61,13 @@ python -m streamlit run app.py
 ```
 Open your browser and navigate to `http://localhost:8501`, pick an engine in the sidebar, upload your CV, paste a job description and click **Analyze My Resume**.
 
-## 📁 Project Files
+## Project Files
 
 | File | Purpose |
 | :--- | :--- |
 | `app.py` | The Streamlit dashboard (both engines, history, UI). |
-| `matcher.py` | A standalone command-line Gemini script that compares `resume.pdf` against a job description pasted into the file. |
 | `requirements.txt` | Python dependencies. |
 | `jobs_history.db` | Local SQLite match history, created automatically on first run. |
+
+<h2>Screenshots of the Application </h2>
+<img width="1919" height="auto" width="auto" alt="streamlit-sc" src="img/streamlit-sc.png" />

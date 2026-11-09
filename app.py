@@ -240,8 +240,8 @@ def analyze(resume_text: str, job_description: str, engine: str) -> JobMatchResu
 load_dotenv()
 init_db()
 
-st.set_page_config(page_title="Job Match Analyzer", page_icon="🎯", layout="centered")
-st.title("🎯 Job Match Analyzer")
+st.set_page_config(page_title="Job-Fit Simulator", page_icon="", layout="centered")
+st.title("Job-Fit Simulator")
 st.caption("Upload a resume and paste a job description to get an instant AI-powered suitability analysis.")
 
 engine_choice = st.sidebar.radio(
@@ -256,7 +256,7 @@ job_description = st.text_area(
     height=250,
     placeholder="Paste the full job description here...",
 )
-job_url = st.text_input("🔗 Job Application Link (Optional)", placeholder="https://...")
+job_url = st.text_input("Job Application Link (Optional)", placeholder="https://...")
 
 analyze_clicked = st.button("Analyze My Resume", type="primary", use_container_width=True)
 
@@ -296,11 +296,11 @@ if result:
     getattr(st, style)(f"{emoji} **Suitability: {result.suitability}**")
 
     if displayed_job_url:
-        st.link_button("🔗 Open Job Application Page", displayed_job_url)
+        st.link_button("Open Job Application Page", displayed_job_url)
 
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("✅ Matching Skills")
+        st.subheader("Matching Skills")
         if result.matching_skills:
             for skill in result.matching_skills:
                 st.markdown(f"- {skill}")
@@ -308,26 +308,26 @@ if result:
             st.markdown("_None found_")
 
     with col2:
-        st.subheader("❌ Missing Skills")
+        st.subheader("Missing Skills")
         if result.missing_skills:
             for skill in result.missing_skills:
                 st.markdown(f"- {skill}")
         else:
             st.markdown("_None found_")
 
-    st.subheader("💼 Work Experience Evaluation")
+    st.subheader("Work Experience Evaluation")
     if result.experience_alignment:
         for point in result.experience_alignment:
             st.markdown(f"- {point}")
     else:
         st.markdown("_None found_")
 
-    st.markdown("💡 **Strategic Portfolio Advice:** " + result.experience_gap_mitigation)
+    st.markdown("**Strategic Portfolio Advice:** " + result.experience_gap_mitigation)
 
-    st.subheader("📝 Analysis Summary")
+    st.subheader("Analysis Summary")
     st.info(result.analysis_summary)
 
-with st.expander("📜 Past Matches History"):
+with st.expander("Past Matches History"):
     history_df = fetch_history()
     if history_df.empty:
         st.markdown("_No past matches yet._")
